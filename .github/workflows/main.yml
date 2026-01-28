@@ -1,98 +1,22 @@
-name: CI/CD Pipeline
+name: Simple Test Pipeline
 
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
 
 jobs:
-  build:
+  test-checkout:
     runs-on: ubuntu-latest
-
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Hämta hela historiken
-          path: .  # Explicit sökväg
-
-      - name: Debug - Show directory structure
+        
+      - name: List ALL files
         run: |
-          echo "=== Current directory ==="
-          pwd
-          echo "=== Directory structure ==="
-          find . -type f -name "*.xml" -o -name "*.java" -o -name "Dockerfile" | head -30
-          echo "=== All files in root ==="
-          ls -la
-          echo "=== Check if pom.xml exists ==="
-          if [ -f "pom.xml" ]; then
-            echo "pom.xml FOUND in root!"
-            cat pom.xml | head -5
-          else
-            echo "pom.xml NOT FOUND in root!"
-          fi
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Cache Maven dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-
-      # Hitta pom.xml automatiskt och kör Maven där
-      - name: Find and run Maven
-        run: |
-          # Sök efter pom.xml i repo
-          POM_FILE=$(find . -name "pom.xml" -type f | head -1)
-          if [ -z "$POM_FILE" ]; then
-            echo "ERROR: No pom.xml found in repository!"
-            exit 1
-          fi
-          echo "Found pom.xml at: $POM_FILE"
-          
-          # Gå till katalogen där pom.xml finns
-          POM_DIR=$(dirname "$POM_FILE")
-          echo "Changing to directory: $POM_DIR"
-          cd "$POM_DIR"
-          
-          # Kör Maven
-          echo "Running: mvn clean package"
-          mvn clean package
-
-      - name: Build Docker image
-        run: |
-          # Hitta Dockerfile eller skapa en
-          if [ -f "Dockerfile" ]; then
-            echo "Found Dockerfile, building..."
-            docker build -t social-app-backend .
-          else
-            echo "No Dockerfile found, creating simple one..."
-            cat > Dockerfile << EOF
-FROM openjdk:17-jdk-slim
-WORKDIR /app
-COPY target/*.jar app.jar
-EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
-EOF
-            docker build -t social-app-backend .
-          fi
-
-      - name: Log in to Docker Hub
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Push Docker image
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          docker tag social-app-backend ${{ secrets.DOCKERHUB_USERNAME }}/social-app-backend:latest
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/social-app-backend:latest
+          echo "=== FULL TREE STRUCTURE ==="
+          find . -type f | sort
+          echo "=== FILE COUNTS ==="
+          echo "Total files: $(find . -type f | wc -l)"
+          echo "Java files: $(find . -name "*.java" | wc -l)"
+          echo "XML files: $(find . -name "*.xml" | wc -l)"
