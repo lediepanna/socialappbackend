@@ -21,10 +21,10 @@ jobs:
           distribution: 'temurin'
 
       - name: Run tests
-        run: ./mvnw test
+        run: mvn test  # Ändrat från ./mvnw test till mvn test
 
       - name: Build application
-        run: ./mvnw clean package -DskipTests
+        run: mvn clean package -DskipTests  # Ändrat från ./mvnw till mvn
 
       - name: Build Docker image
         run: docker build -t social-app-backend .
